@@ -44,13 +44,13 @@ class Bst {
   //определение высоты дерева. Трудоёмкость операции – O (n)
   size_type height() const noexcept;
 
-  //!запрос прямого итератора, установленного на узел дерева с минимальным
-  //!ключом
+  //запрос прямого итератора, установленного на узел дерева с минимальным
+  //ключом
   iterator begin() noexcept;
   //!запрос «неустановленного» прямого итератора
   iterator end() noexcept;
 
-  //!запрос обратного итератора, установленного на узел дерева с максимальным
+  //запрос обратного итератора, установленного на узел дерева с максимальным
   //ключом
   reverse_iterator rbegin() noexcept;
   //!запрос «неустановленного» обратного итератора
@@ -80,15 +80,14 @@ class Bst {
 
   class BstIterator {
    private:
-    Node *bst_root_ = root_;
+    Node *bst_root_ = nullptr;
     Node *current_ = nullptr;
 
    public:
-    BstIterator();
-    BstIterator(const Node &n);
-    ~BstIterator();
+    BstIterator(Node *root, Node *n) : bst_root_(root), current_(n){};
+    ~BstIterator(){};
 
-    reference operator*() const noexcept { return current->data; }
+    reference operator*() const noexcept { return current_->data; }
 
     BstIterator &operator++() noexcept;
     BstIterator operator++(int) noexcept;
@@ -98,6 +97,26 @@ class Bst {
 
     bool operator==(BstIterator const &other) const noexcept;
     bool operator!=(BstIterator const &other) const noexcept;
+  };
+  class ReverseBstIterator {
+   private:
+    Node *bst_root_ = nullptr;
+    Node *current_ = nullptr;
+
+   public:
+    ReverseBstIterator(Node *root, Node *n) : bst_root_(root), current_(n){};
+    ~ReverseBstIterator(){};
+
+    reference operator*() const noexcept { return current_->data; }
+
+    ReverseBstIterator &operator++() noexcept;
+    ReverseBstIterator operator++(int) noexcept;
+
+    ReverseBstIterator &operator--() noexcept;
+    ReverseBstIterator operator--(int) noexcept;
+
+    bool operator==(ReverseBstIterator const &other) const noexcept;
+    bool operator!=(ReverseBstIterator const &other) const noexcept;
   };
 };
 
@@ -215,6 +234,17 @@ typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find_max(Node *node) {
   } else {
     return find_max(node->right);
   }
+}
+
+template <typename T_key, typename T_data>
+typename Bst<T_key, T_data>::iterator Bst<T_key, T_data>::begin() noexcept {
+  return BstIterator(root_, find_min(root_));
+}
+
+template <typename T_key, typename T_data>
+typename Bst<T_key, T_data>::reverse_iterator
+Bst<T_key, T_data>::rbegin() noexcept {
+  return ReverseBstIterator(root_, find_max(root_));
 }
 
 #endif  // BSTREE_H_

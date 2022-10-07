@@ -7,5 +7,5 @@ int main() {
   b.insert(3, 'd');
   b.insert(0, 'a');
   b.insert(-1, 'g');
-  std::cout << b.height();
+  std::cout << *b.begin();
 }
