@@ -7,5 +7,6 @@ int main() {
   b.insert(3, 'd');
   b.insert(0, 'a');
   b.insert(-1, 'g');
-  std::cout << *b.begin();
+  
+  for (auto it = b.rbegin(); it != b.rend(); it++) std::cout << *it;
 }

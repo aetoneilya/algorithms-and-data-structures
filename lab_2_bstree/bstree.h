@@ -34,7 +34,7 @@ class Bst {
   const reference at(key_type k) const;
 
   void insert(key_type k, value_type v);  // включение данных с заданным ключом
-  void remove(key_type k);  //! удаление данных с заданным ключом
+  void remove(key_type k);  // удаление данных с заданным ключом
 
   //формирование списка ключей в дереве в порядке обхода узлов по схеме,
   //заданной в варианте задания
@@ -47,13 +47,13 @@ class Bst {
   //запрос прямого итератора, установленного на узел дерева с минимальным
   //ключом
   iterator begin() noexcept;
-  //!запрос «неустановленного» прямого итератора
+  //запрос «неустановленного» прямого итератора
   iterator end() noexcept;
 
   //запрос обратного итератора, установленного на узел дерева с максимальным
   //ключом
   reverse_iterator rbegin() noexcept;
-  //!запрос «неустановленного» обратного итератора
+  //запрос «неустановленного» обратного итератора
   reverse_iterator rend() noexcept;
 
  private:
@@ -71,6 +71,7 @@ class Bst {
   };
 
   void insert(key_type k, value_type v, Node *&node);
+  Node *remove(key_type k, Node *node);
   Node *find(key_type k, Node *node);
   Node *find_min(Node *node);
   Node *find_max(Node *node);
@@ -89,14 +90,81 @@ class Bst {
 
     reference operator*() const noexcept { return current_->data; }
 
-    BstIterator &operator++() noexcept;
-    BstIterator operator++(int) noexcept;
+    BstIterator &operator++() noexcept {
+      current_ = find_next(current_);
+      return *this;
+    }
 
-    BstIterator &operator--() noexcept;
-    BstIterator operator--(int) noexcept;
+    BstIterator operator++(int) noexcept {
+      auto it = *this;
+      ++(*this);
+      return it;
+    }
 
-    bool operator==(BstIterator const &other) const noexcept;
-    bool operator!=(BstIterator const &other) const noexcept;
+    BstIterator &operator--() noexcept {
+      current_ = find_prev(current_);
+      return *this;
+    }
+    BstIterator operator--(int) noexcept {
+      auto it = *this;
+      (*this);
+      return it;
+    }
+
+    bool operator==(BstIterator const &other) const noexcept {
+      return current_ == other.current_;
+    }
+    bool operator!=(BstIterator const &other) const noexcept {
+      return current_ != other.current_;
+    }
+
+   private:
+    Node *find_parent(Node *node) { return find_parent(node, bst_root_); }
+    Node *find_parent(Node *node, Node *from) {
+      if (from == nullptr || node == nullptr) return nullptr;
+      if (from->left == node || from->right == node) return from;
+
+      if (node->key > from->key) {
+        return find_parent(node, from->right);
+      } else if (node->key < from->key) {
+        return find_parent(node, from->left);
+      }
+      return nullptr;
+    }
+
+    Node *find_next(Node *node) {
+      if (node->right != nullptr) {
+        node = node->right;
+        while (node->left) node = node->left;
+        return node;
+      }
+
+      Node *parent = find_parent(node);
+
+      while (parent != nullptr) {
+        if (parent->left == node) break;
+        node = parent;
+        parent = find_parent(node);
+      }
+      return parent;
+    }
+
+    Node *find_prev(Node *node) {
+      if (node->left != nullptr) {
+        node = node->left;
+        while (node->right) node = node->right;
+        return node;
+      }
+
+      Node *parent = find_parent(node);
+
+      while (parent != nullptr) {
+        if (parent->right == node) break;
+        node = parent;
+        parent = find_parent(node);
+      }
+      return parent;
+    }
   };
   class ReverseBstIterator {
    private:
@@ -109,14 +177,80 @@ class Bst {
 
     reference operator*() const noexcept { return current_->data; }
 
-    ReverseBstIterator &operator++() noexcept;
-    ReverseBstIterator operator++(int) noexcept;
+    ReverseBstIterator &operator++() noexcept {
+      current_ = find_prev(current_);
+      return *this;
+    }
+    ReverseBstIterator operator++(int) noexcept {
+      auto it = *this;
+      ++(*this);
+      return it;
+    }
 
-    ReverseBstIterator &operator--() noexcept;
-    ReverseBstIterator operator--(int) noexcept;
+    ReverseBstIterator &operator--() noexcept {
+      current_ = find_next(current_);
+      return *this;
+    }
+    ReverseBstIterator operator--(int) noexcept {
+      auto it = *this;
+      (*this);
+      return it;
+    }
 
-    bool operator==(ReverseBstIterator const &other) const noexcept;
-    bool operator!=(ReverseBstIterator const &other) const noexcept;
+    bool operator==(ReverseBstIterator const &other) const noexcept {
+      return current_ == other.current_;
+    }
+    bool operator!=(ReverseBstIterator const &other) const noexcept {
+      return current_ != other.current_;
+    }
+
+   private:
+    Node *find_parent(Node *node) { return find_parent(node, bst_root_); }
+    Node *find_parent(Node *node, Node *from) {
+      if (from == nullptr || node == nullptr) return nullptr;
+      if (from->left == node || from->right == node) return from;
+
+      if (node->key > from->key) {
+        return find_parent(node, from->right);
+      } else if (node->key < from->key) {
+        return find_parent(node, from->left);
+      }
+      return nullptr;
+    }
+
+    Node *find_next(Node *node) {
+      if (node->right != nullptr) {
+        node = node->right;
+        while (node->left) node = node->left;
+        return node;
+      }
+
+      Node *parent = find_parent(node);
+
+      while (parent != nullptr) {
+        if (parent->left == node) break;
+        node = parent;
+        parent = find_parent(node);
+      }
+      return parent;
+    }
+
+    Node *find_prev(Node *node) {
+      if (node->left != nullptr) {
+        node = node->left;
+        while (node->right) node = node->right;
+        return node;
+      }
+
+      Node *parent = find_parent(node);
+
+      while (parent != nullptr) {
+        if (parent->right == node) break;
+        node = parent;
+        parent = find_parent(node);
+      }
+      return parent;
+    }
   };
 };
 
@@ -242,9 +376,54 @@ typename Bst<T_key, T_data>::iterator Bst<T_key, T_data>::begin() noexcept {
 }
 
 template <typename T_key, typename T_data>
+typename Bst<T_key, T_data>::iterator Bst<T_key, T_data>::end() noexcept {
+  return BstIterator(root_, nullptr);
+}
+
+template <typename T_key, typename T_data>
 typename Bst<T_key, T_data>::reverse_iterator
 Bst<T_key, T_data>::rbegin() noexcept {
   return ReverseBstIterator(root_, find_max(root_));
+}
+
+template <typename T_key, typename T_data>
+typename Bst<T_key, T_data>::reverse_iterator
+Bst<T_key, T_data>::rend() noexcept {
+  return ReverseBstIterator(root_, nullptr);
+}
+
+template <typename T_key, typename T_data>
+void Bst<T_key, T_data>::remove(key_type k) {
+  remove(k, root_);
+}
+
+template <typename T_key, typename T_data>
+typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::remove(key_type k,
+                                                              Node *node) {
+  if (node == nullptr) return nullptr;
+  if (k < node->key) {
+    node->left = remove(k, node->left);
+  } else if (k > node->key) {
+    node->right = remove(k, node->right);
+  } else {
+    if (node->left == nullptr) {
+      Node *right_node = node->right;
+      delete node;
+      return right_node;
+    }
+
+    if (node->right == nullptr) {
+      Node *left_child = node->left;
+      delete node;
+      return left_child;
+    }
+
+    Node *min_node = find_min(node->right);
+    node->key = min_node->key;
+    node->right = remove(min_node->key, node->right);
+  }
+
+  return node;
 }
 
 #endif  // BSTREE_H_
