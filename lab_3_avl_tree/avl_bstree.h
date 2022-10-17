@@ -431,82 +431,46 @@ typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::remove(
   } else if (k > node->key) {
     node->right = remove(k, node->right);
   } else {
-    // node * r = head->right;
-    //                 if(head->right==NULL){
-    //                     node * l = head->left;
-    //                     delete(head);
-    //                     head = l;
-    //                 }else if(head->left==NULL){
-    //                     delete(head);
-    //                     head = r;
-    //                 }else{
-    //                     while(r->left!=NULL) r = r->left;
-    //                     head->key = r->key;
-    //                     head->right = removeUtil(head->right, r->key);
-    //                 }
-
-    Node *r = node->right;
-    if (node->right == nullptr) {
-      Node *l = node->left;
-      
+    if (node->left == nullptr) {
+      Node *right_node = node->right;
+      node->right = node->left = nullptr;
+      delete node;
+      return right_node;
     }
-    // if (node->left == nullptr) {
-    //   Node *right_node = node->right;
-    //   delete node;
-    //   return right_node;
-    // }
 
-    // if (node->right == nullptr) {
-    //   Node *left_child = node->left;
-    //   delete node;
-    //   return left_child;
-    // }
+    if (node->right == nullptr) {
+      Node *left_child = node->left;
+      node->right = node->left = nullptr;
+      delete node;
+      return left_child;
+    }
 
-    // Node *min_node = find_min(node->right);
-    // node->key = min_node->key;
-    // node->right = remove(min_node->key, node->right);
+    Node *min_node = find_min(node->right);
+    node->key = min_node->key;
+    node->data = min_node->data;
+    node->right = remove(min_node->key, node->right);
   }
 
-  return node;
+  if (node == nullptr) return node;
 
-  //             if(x < head->key){
-  //                 head->left = removeUtil(head->left, x);
-  //             }else if(x > head->key){
-  //                 head->right = removeUtil(head->right, x);
-  //             }else{
-  //                 node * r = head->right;
-  //                 if(head->right==NULL){
-  //                     node * l = head->left;
-  //                     delete(head);
-  //                     head = l;
-  //                 }else if(head->left==NULL){
-  //                     delete(head);
-  //                     head = r;
-  //                 }else{
-  //                     while(r->left!=NULL) r = r->left;
-  //                     head->key = r->key;
-  //                     head->right = removeUtil(head->right, r->key);
-  //                 }
-  //             }
-  //             if(head==NULL) return head;
-  //             head->height = 1 + max(height(head->left),
-  //             height(head->right)); int bal = height(head->left) -
-  //             height(head->right); if(bal>1){
-  //                 if(height(head->left) >= height(head->right)){
-  //                     return rightRotation(head);
-  //                 }else{
-  //                     head->left = leftRotation(head->left);
-  //                     return rightRotation(head);
-  //                 }
-  //             }else if(bal < -1){
-  //                 if(height(head->right) >= height(head->left)){
-  //                     return leftRotation(head);
-  //                 }else{
-  //                     head->right = rightRotation(head->right);
-  //                     return leftRotation(head);
-  //                 }
-  //             }
-  //             return head;
+  node->height = 1 + std::max(height(node->left), height(node->right));
+  int bal = (int)(height(node->left) - height(node->right));
+  if (bal > 1) {
+    if (height(node->left) >= height(node->right)) {
+      return right_rotate(node);
+    } else {
+      node->left = left_rotate(node->left);
+      return right_rotate(node);
+    }
+  } else if (bal < -1) {
+    if (height(node->right) >= height(node->left)) {
+      return left_rotate(node);
+    } else {
+      node->right = right_rotate(node->right);
+      return left_rotate(node);
+    }
+  }
+  return node;
 }
 
 template <typename T_key, typename T_data>
