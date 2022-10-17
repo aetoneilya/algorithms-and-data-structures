@@ -1,13 +1,13 @@
 #ifndef BSTREE_H_
 #define BSTREE_H_
 
-#include <functional>
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <queue>
 
 template <typename T_key, typename T_data>
-class Bst {
+class AvlBst {
   class BstIterator;
   class ReverseBstIterator;
   struct Node;
@@ -22,9 +22,9 @@ class Bst {
   using size_type = std::size_t;
 
  public:
-  Bst(){};
-  Bst(Bst const &b);
-  ~Bst() { delete root_; };
+  AvlBst(){};
+  AvlBst(AvlBst const &b);
+  ~AvlBst() { delete root_; };
 
   size_type size() const;       // размер дерева
   void clear();                 // очистка дерева
@@ -60,6 +60,7 @@ class Bst {
   struct Node {
     key_type key;
     value_type data;
+    size_type height = 0;
     Node *left = nullptr;
     Node *right = nullptr;
 
@@ -75,6 +76,12 @@ class Bst {
   Node *find(key_type k, Node *node);
   Node *find_min(Node *node);
   Node *find_max(Node *node);
+  size_type height(Node *node);
+
+  Node *left_rotate(Node *&t);
+  Node *right_rotate(Node *&t);
+  Node *double_left_rotate(Node *&t);
+  Node *double_right_rotate(Node *&t);
 
   size_type size_ = 0;
   Node *root_ = nullptr;
@@ -166,6 +173,7 @@ class Bst {
       return parent;
     }
   };
+
   class ReverseBstIterator {
    private:
     Node *bst_root_ = nullptr;
@@ -255,26 +263,40 @@ class Bst {
 };
 
 template <typename T_key, typename T_data>
-void Bst<T_key, T_data>::insert(key_type k, value_type v) {
+void AvlBst<T_key, T_data>::insert(key_type k, value_type v) {
   insert(k, v, root_);
-}
-
-template <typename T_key, typename T_data>
-void Bst<T_key, T_data>::insert(key_type k, value_type v, Node *&node) {
-  if (node == nullptr) {
-    node = new Node(k, v);
-  } else if (k > node->key) {
-    insert(k, v, node->right);
-  } else if (k < node->key) {
-    insert(k, v, node->left);
-  } else {  // if equal
-    node->data = v;
-  }
   size_++;
 }
 
 template <typename T_key, typename T_data>
-void Bst<T_key, T_data>::bf_print() const noexcept {
+void AvlBst<T_key, T_data>::insert(key_type k, value_type v, Node *&node) {
+  if (node == nullptr) {
+    node = new Node(k, v);
+  } else if (k < node->key) {
+    insert(k, v, node->left);
+    if (height(node->left) - height(node->right) == 2) {
+      if (k < node->left->key)
+        node = right_rotate(node);
+      else
+        node = double_right_rotate(node);
+    }
+
+  } else if (k > node->key) {
+    insert(k, v, node->right);
+    if (height(node->right) - height(node->left) == 2) {
+      if (k > node->right->data)
+        node = left_rotate(node);
+      else
+        node = double_left_rotate(node);
+    }
+  } else {  // if equal
+    node->data = v;
+  }
+  node->height = std::max(height(node->left), height(node->right)) + 1;
+}
+
+template <typename T_key, typename T_data>
+void AvlBst<T_key, T_data>::bf_print() const noexcept {
   if (root_ == nullptr) return;
 
   std::queue<Node *> q;
@@ -292,37 +314,38 @@ void Bst<T_key, T_data>::bf_print() const noexcept {
 }
 
 template <typename T_key, typename T_data>
-void Bst<T_key, T_data>::df_print() const noexcept {}
+void AvlBst<T_key, T_data>::df_print() const noexcept {}
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::size_type Bst<T_key, T_data>::size() const {
+typename AvlBst<T_key, T_data>::size_type AvlBst<T_key, T_data>::size() const {
   return size_;
 }
 
 template <typename T_key, typename T_data>
-void Bst<T_key, T_data>::clear() {
+void AvlBst<T_key, T_data>::clear() {
   delete root_;
 }
 
 template <typename T_key, typename T_data>
-bool Bst<T_key, T_data>::empty() const noexcept {
+bool AvlBst<T_key, T_data>::empty() const noexcept {
   return size_ == 0;
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::reference Bst<T_key, T_data>::at(key_type k) {
+typename AvlBst<T_key, T_data>::reference AvlBst<T_key, T_data>::at(
+    key_type k) {
   return find(k, root_)->data;
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::reference Bst<T_key, T_data>::at(
+typename AvlBst<T_key, T_data>::reference AvlBst<T_key, T_data>::at(
     key_type k) const {
   return find(k, root_)->data;
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find(key_type k,
-                                                            Node *node) {
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::find(key_type k,
+                                                                  Node *node) {
   if (node == nullptr) {
     return nullptr;
   } else if (k > node->key) {
@@ -335,21 +358,20 @@ typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find(key_type k,
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::size_type Bst<T_key, T_data>::height()
+typename AvlBst<T_key, T_data>::size_type AvlBst<T_key, T_data>::height()
     const noexcept {
-  std::function<size_type(Node *)> lamd_height = [&lamd_height](Node *node) {
-    if (node == nullptr) {
-      return (size_type)0;
-    } else {
-      return (size_type)(1 + std::max(lamd_height(node->left),
-                                      lamd_height(node->right)));
-    }
-  };
-  return lamd_height(root_);
+  return height(root_);
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find_min(Node *node) {
+typename AvlBst<T_key, T_data>::size_type AvlBst<T_key, T_data>::height(
+    Node *node) {
+  return (node == nullptr ? -1 : node->height);
+}
+
+template <typename T_key, typename T_data>
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::find_min(
+    Node *node) {
   if (node == nullptr) {
     return nullptr;
   } else if (node->left == nullptr) {
@@ -360,7 +382,8 @@ typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find_min(Node *node) {
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find_max(Node *node) {
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::find_max(
+    Node *node) {
   if (node == nullptr) {
     return nullptr;
   } else if (node->right == nullptr) {
@@ -371,63 +394,157 @@ typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::find_max(Node *node) {
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::iterator Bst<T_key, T_data>::begin() noexcept {
+typename AvlBst<T_key, T_data>::iterator
+AvlBst<T_key, T_data>::begin() noexcept {
   return BstIterator(root_, find_min(root_));
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::iterator Bst<T_key, T_data>::end() noexcept {
+typename AvlBst<T_key, T_data>::iterator AvlBst<T_key, T_data>::end() noexcept {
   return BstIterator(root_, nullptr);
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::reverse_iterator
-Bst<T_key, T_data>::rbegin() noexcept {
+typename AvlBst<T_key, T_data>::reverse_iterator
+AvlBst<T_key, T_data>::rbegin() noexcept {
   return ReverseBstIterator(root_, find_max(root_));
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::reverse_iterator
-Bst<T_key, T_data>::rend() noexcept {
+typename AvlBst<T_key, T_data>::reverse_iterator
+AvlBst<T_key, T_data>::rend() noexcept {
   return ReverseBstIterator(root_, nullptr);
 }
 
 template <typename T_key, typename T_data>
-void Bst<T_key, T_data>::remove(key_type k) {
+void AvlBst<T_key, T_data>::remove(key_type k) {
   remove(k, root_);
 }
 
 template <typename T_key, typename T_data>
-typename Bst<T_key, T_data>::Node *Bst<T_key, T_data>::remove(key_type k,
-                                                              Node *node) {
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::remove(
+    key_type k, Node *node) {
   if (node == nullptr) return nullptr;
-  
+
   if (k < node->key) {
     node->left = remove(k, node->left);
   } else if (k > node->key) {
     node->right = remove(k, node->right);
   } else {
-    if (node->left == nullptr) {
-      Node *right_node = node->right;
-      node->right = node->left = nullptr;
-      delete node;
-      return right_node;
-    }
+    // node * r = head->right;
+    //                 if(head->right==NULL){
+    //                     node * l = head->left;
+    //                     delete(head);
+    //                     head = l;
+    //                 }else if(head->left==NULL){
+    //                     delete(head);
+    //                     head = r;
+    //                 }else{
+    //                     while(r->left!=NULL) r = r->left;
+    //                     head->key = r->key;
+    //                     head->right = removeUtil(head->right, r->key);
+    //                 }
 
+    Node *r = node->right;
     if (node->right == nullptr) {
-      Node *left_child = node->left;
-      node->right = node->left = nullptr;
-      delete node;
-      return left_child;
+      Node *l = node->left;
+      
     }
+    // if (node->left == nullptr) {
+    //   Node *right_node = node->right;
+    //   delete node;
+    //   return right_node;
+    // }
 
-    Node *min_node = find_min(node->right);
-    node->key = min_node->key;
-    node->data = min_node->data;
-    node->right = remove(min_node->key, node->right);
+    // if (node->right == nullptr) {
+    //   Node *left_child = node->left;
+    //   delete node;
+    //   return left_child;
+    // }
+
+    // Node *min_node = find_min(node->right);
+    // node->key = min_node->key;
+    // node->right = remove(min_node->key, node->right);
   }
 
   return node;
+
+  //             if(x < head->key){
+  //                 head->left = removeUtil(head->left, x);
+  //             }else if(x > head->key){
+  //                 head->right = removeUtil(head->right, x);
+  //             }else{
+  //                 node * r = head->right;
+  //                 if(head->right==NULL){
+  //                     node * l = head->left;
+  //                     delete(head);
+  //                     head = l;
+  //                 }else if(head->left==NULL){
+  //                     delete(head);
+  //                     head = r;
+  //                 }else{
+  //                     while(r->left!=NULL) r = r->left;
+  //                     head->key = r->key;
+  //                     head->right = removeUtil(head->right, r->key);
+  //                 }
+  //             }
+  //             if(head==NULL) return head;
+  //             head->height = 1 + max(height(head->left),
+  //             height(head->right)); int bal = height(head->left) -
+  //             height(head->right); if(bal>1){
+  //                 if(height(head->left) >= height(head->right)){
+  //                     return rightRotation(head);
+  //                 }else{
+  //                     head->left = leftRotation(head->left);
+  //                     return rightRotation(head);
+  //                 }
+  //             }else if(bal < -1){
+  //                 if(height(head->right) >= height(head->left)){
+  //                     return leftRotation(head);
+  //                 }else{
+  //                     head->right = rightRotation(head->right);
+  //                     return leftRotation(head);
+  //                 }
+  //             }
+  //             return head;
+}
+
+template <typename T_key, typename T_data>
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::left_rotate(
+    Node *&t) {
+  if (t->right == nullptr) return t;
+  Node *u = t->right;
+  t->right = u->left;
+  u->left = t;
+  t->height = std::max(height(t->left), height(t->right)) + 1;
+  u->height = std::max(height(t->right), t->height) + 1;
+  return u;
+}
+
+template <typename T_key, typename T_data>
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::right_rotate(
+    Node *&t) {
+  if (t->left == nullptr) return t;
+  Node *u = t->left;
+  t->left = u->right;
+  u->right = t;
+  t->height = std::max(height(t->left), height(t->right)) + 1;
+  u->height = std::max(height(u->left), t->height) + 1;
+  return u;
+}
+
+template <typename T_key, typename T_data>
+typename AvlBst<T_key, T_data>::Node *AvlBst<T_key, T_data>::double_left_rotate(
+    Node *&t) {
+  t->right = right_rotate(t->right);
+  return left_rotate(t);
+}
+
+template <typename T_key, typename T_data>
+typename AvlBst<T_key, T_data>::Node *
+AvlBst<T_key, T_data>::double_right_rotate(Node *&t) {
+  t->left = left_rotate(t->left);
+  return right_rotate(t);
 }
 
 #endif  // BSTREE_H_
